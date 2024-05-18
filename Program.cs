@@ -14,7 +14,7 @@ if (!File.Exists(reportPath))
 }
 Console.WriteLine("Parsing file ..");
 var dict = new Dictionary<string, bool>();
-var pomReolvers = new List<Task<ReportLine>>();
+var pomResolvers = new List<Task<ReportLine>>();
 var httpClient = new HttpClient();
 using (var sr = new StreamReader(reportPath))
 {
@@ -36,16 +36,16 @@ using (var sr = new StreamReader(reportPath))
         if (dict.ContainsKey(reportLine.mavenPackageName))
             continue;
         dict[reportLine.mavenPackageName] = false;
-        pomReolvers.Add(PomFinder.Retrieve(reportLine, httpClient));
+        pomResolvers.Add(PomFinder.Retrieve(reportLine, httpClient));
     }
 }
 Console.WriteLine("Waiting for pomResolvers ..");
-Task.WaitAll([.. pomReolvers]);
+Task.WaitAll([.. pomResolvers]);
 Console.WriteLine("Writing report..");
 using var sw = new StreamWriter(Path.Combine(Environment.CurrentDirectory, "extracted.csv"));
 sw.WriteLine("mavenPackageName,moduleName,moduleUrl,moduleVersion,moduleLicense,moduleLicenseUrl,pomUrl");
 var list = new List<ReportLine>();
-foreach (var reportTask in pomReolvers)
+foreach (var reportTask in pomResolvers)
 {
     var r = reportTask.Result;
     sw.WriteLine($"{r.mavenPackageName},{r.moduleName},,{r.moduleVersion},{r.moduleLicense},{r.moduleLicenseUrl},{r.pomUrl}");

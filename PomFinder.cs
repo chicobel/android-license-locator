@@ -8,20 +8,20 @@ public static class PomFinder
     public static async Task<ReportLine> Retrieve(ReportLine r, HttpClient client)
     {
         var taskList = new List<Task<HttpResponseMessage>>();
-        var likelyUnderGoogle = r.mavenPackageName.Contains("androidx", StringComparison.InvariantCultureIgnoreCase) || r.mavenPackageName.Contains("google", StringComparison.InvariantCultureIgnoreCase);
+        var likelyUnderGoogle = r.mavenPackageName.IndexOf("androidx", StringComparison.InvariantCultureIgnoreCase) >-1 || r.mavenPackageName.IndexOf("google", StringComparison.InvariantCultureIgnoreCase) > -1;
         var repoList = likelyUnderGoogle ? Repos.GoogePreferredRepos : Repos.DefaultRepos;
         foreach (var repo in repoList)
         {
             var resp = client.GetAsync(repo + "/" + r.PomPath());
             taskList.Add(resp);
         }
-        await Task.WhenAll(taskList.ToArray());
-        var responses = taskList.Where(p => p.Result.IsSuccessStatusCode).Select(p => p.Result);
-        string pomData = "";
+        await Task.WhenAll([..taskList]);
         foreach (var tsk in taskList)
         {
-            pomData = await tsk.Result.Content.ReadAsStringAsync();
-        
+            if(!tsk.Result.IsSuccessStatusCode)
+                continue;
+            string pomData = await tsk.Result.Content.ReadAsStringAsync();
+
             try
             {
                 var doc = new XmlDocument();
@@ -47,7 +47,7 @@ public static class PomFinder
                     return r;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Console.Write("Failed to parse xml for: " + tsk.Result.RequestMessage?.RequestUri + "\n");
             }
